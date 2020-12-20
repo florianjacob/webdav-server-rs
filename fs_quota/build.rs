@@ -35,13 +35,14 @@ fn main() {
     run_rpcgen();
 
     let mut builder = cc::Build::new();
+    let has_tirpc = pkg_config::probe_library("libtirpc").is_ok();
 
     #[cfg(target_os = "linux")]
     builder.file("src/quota-linux.c");
 
     #[cfg(feature = "nfs")]
     {
-        if Path::new("/usr/include/tirpc").exists() {
+        if has_tirpc {
             // Fedora does not include RPC support in glibc anymore, so use tirpc instead.
             builder.include("/usr/include/tirpc");
         }
@@ -51,7 +52,7 @@ fn main() {
         .flag_if_supported("-Wno-unused-variable")
         .compile("fs_quota");
 
-    if Path::new("/usr/include/tirpc").exists() {
+    if has_tirpc {
         println!("cargo:rustc-link-lib=tirpc");
     } else {
         println!("cargo:rustc-link-lib=rpcsvc");
